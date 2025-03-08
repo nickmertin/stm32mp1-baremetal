@@ -1,40 +1,14 @@
 #pragma once
 #include "boot_image_def.hh"
 #include "boot_loader.hh"
+#include "delay.h"
 #include "drivers/pinconf.hh"
 #include "gpt/gpt.hh"
 #include "stm32mp1xx_hal_sd.h"
 #include <array>
 
 struct BootSDLoader : BootLoader {
-	BootSDLoader()
-	{
-		RCC->SDMMC12CKSELR = 3; // HSI = 64MHz. Default value (just showing it here for educational purposes)
-
-		HAL_SD_DeInit(&hsd);
-		hsd.Instance = SDMMC1;
-		hsd.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
-		hsd.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-		hsd.Init.BusWide = SDMMC_BUS_WIDE_4B;
-		hsd.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-		hsd.Init.ClockDiv = 2; // 64MHz/2 / 2 = 16MHz, seems to be the max OSD32-BRK can handle reliably
-
-		// These pins are not board-specific, they are required by BOOTROM
-		// for booting with SDMMC1
-		// D1 - D3 are not used by BOOTROM, so need to be init by FSBL
-		PinConf{GPIO::C, PinNum::_9, PinAF::AF_12}.init(PinMode::Alt);
-		PinConf{GPIO::C, PinNum::_10, PinAF::AF_12}.init(PinMode::Alt);
-		PinConf{GPIO::C, PinNum::_11, PinAF::AF_12}.init(PinMode::Alt);
-
-		// D0, CK, CMD are used by BOOTROM and should already be init. We re-init them just in case...
-		PinConf{GPIO::C, PinNum::_8, PinAF::AF_12}.init(PinMode::Alt);
-		PinConf{GPIO::C, PinNum::_12, PinAF::AF_12}.init(PinMode::Alt);
-		PinConf{GPIO::D, PinNum::_2, PinAF::AF_12}.init(PinMode::Alt);
-
-		auto ok = HAL_SD_Init(&hsd);
-		if (ok != HAL_OK)
-			init_error();
-	}
+	BootSDLoader() { reinit(); }
 
 	BootImageDef::image_header read_image_header() override
 	{
@@ -55,7 +29,7 @@ struct BootSDLoader : BootLoader {
 			}
 		}
 		if (ssbl_blockaddr == InvalidPartitionNum) {
-			// pr_err("No valid GPT header found\n");
+			pr_err("No valid GPT header found\n");
 			return {};
 		}
 
@@ -73,10 +47,7 @@ struct BootSDLoader : BootLoader {
 		return (err == HAL_OK);
 	}
 
-	bool has_error()
-	{
-		return _has_error;
-	}
+	bool has_error() { return _has_error; }
 
 private:
 	static constexpr uint32_t ssbl_part_num = BootImageDef::SDCardSSBLPartition - 1;
@@ -111,18 +82,37 @@ private:
 	{
 		constexpr uint32_t numblocks = 1;
 		constexpr uint32_t timeout = 0xFFFFFF;
+		constexpr int max_retries = 100;
 
+		hsd.ErrorCode = 0;
 		if constexpr (sizeof data == 512) {
 			// Size matches block size: read directly into data
-			auto err = HAL_SD_ReadBlocks(&hsd, (uint8_t *)&data, block, numblocks, timeout);
-			if (err != HAL_OK)
+			for (int i = 0; i < max_retries; i++) {
+				auto err = HAL_SD_ReadBlocks(&hsd, (uint8_t *)&data, block, numblocks, timeout);
+				if (err == HAL_OK)
+					return;
 				read_error();
+				if (i % 10 == 9)
+					reinit();
+				else
+					udelay(500);
+			}
+			panic("failed to read from SD card");
 		} else if (sizeof data < 512) {
 			uint8_t _data[512];
-			auto err = HAL_SD_ReadBlocks(&hsd, _data, block, numblocks, timeout);
-			if (err != HAL_OK)
+			for (int i = 0; i < max_retries; i++) {
+				auto err = HAL_SD_ReadBlocks(&hsd, _data, block, numblocks, timeout);
+				if (err == HAL_OK)
+					goto success;
 				read_error();
+				if (i % 10 == 9)
+					reinit();
+				else
+					udelay(500);
+			}
+			panic("failed to read from SD card");
 
+		success:
 			auto *dst = (uint8_t *)(&data);
 			auto *src = (uint8_t *)_data;
 			auto sz = sizeof(data);
@@ -148,6 +138,40 @@ private:
 	void read_error()
 	{
 		_has_error = true;
+		print("ERR: ", Hex(hsd.ErrorCode), "\n");
 		// panic("HAL Read SD not ok");
+	}
+
+	void reinit()
+	{
+		RCC->SDMMC12CKSELR = 3; // HSI = 64MHz. Default value (just showing it here for educational purposes)
+
+		HAL_SD_DeInit(&hsd);
+		hsd.Instance = SDMMC1;
+		hsd.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
+		hsd.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+		hsd.Init.BusWide = SDMMC_BUS_WIDE_4B;
+		hsd.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
+		hsd.Init.ClockDiv = 64; // 64MHz/2 / 64 = 500kHz, seems to be the max OSD32-BRK can handle reliably
+
+		// These pins are not board-specific, they are required by BOOTROM
+		// for booting with SDMMC1
+		// D1 - D3 are not used by BOOTROM, so need to be init by FSBL
+		PinConf{GPIO::C, PinNum::_9, PinAF::AF_12}.init(PinMode::Alt);
+		PinConf{GPIO::C, PinNum::_10, PinAF::AF_12}.init(PinMode::Alt);
+		PinConf{GPIO::C, PinNum::_11, PinAF::AF_12}.init(PinMode::Alt);
+
+		// D0, CK, CMD are used by BOOTROM and should already be init. We re-init them just in case...
+		PinConf{GPIO::C, PinNum::_8, PinAF::AF_12}.init(PinMode::Alt);
+		PinConf{GPIO::C, PinNum::_12, PinAF::AF_12}.init(PinMode::Alt);
+		PinConf{GPIO::D, PinNum::_2, PinAF::AF_12}.init(PinMode::Alt);
+
+		udelay(10000);
+
+		auto ok = HAL_SD_Init(&hsd);
+		if (ok != HAL_OK)
+			init_error();
+
+		udelay(10000);
 	}
 };

@@ -24,7 +24,7 @@ void printone(Hex hex)
 		return;
 	}
 	/// TODO: read left to right, not right to left, to avoid flipping digits
-	constexpr int MAX_DIGITS = 8;
+	constexpr int MAX_DIGITS = 16;
 	char buf[MAX_DIGITS + 1];
 	int len = 0;
 	do {

@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 // Set desired verbosity here:
 constexpr bool PrintDebugMessages = false;
-constexpr bool PrintLogMessages = false;
+constexpr bool PrintLogMessages = true;
 constexpr bool PrintErrorMessages = true;
 /////////////////////////////////////////////
 

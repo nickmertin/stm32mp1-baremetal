@@ -9,10 +9,7 @@ extern "C" {
 // #define log(...)
 // #define pr_err(...)
 
-u32 efi_crc32(const void *buf, u32 len)
-{
-	return crc32(0, (uint8_t *)buf, len);
-}
+u32 efi_crc32(const void *buf, u32 len) { return crc32(0, (uint8_t *)buf, len); }
 
 bool validate_gpt_header(gpt_header *gpt_h, lbaint_t lba, lbaint_t lastlba)
 {
@@ -21,10 +18,11 @@ bool validate_gpt_header(gpt_header *gpt_h, lbaint_t lba, lbaint_t lastlba)
 
 	/* Check the GPT header signature */
 	if (le64_to_cpu(gpt_h->signature) != GPT_HEADER_SIGNATURE_UBOOT) {
-		pr_err("%s signature is wrong: 0x%llX != 0x%llX\n",
-			   "GUID Partition Table Header",
-			   le64_to_cpu(gpt_h->signature),
-			   GPT_HEADER_SIGNATURE_UBOOT);
+		pr_err("GUID Partition Table Header signature is wrong: 0x",
+			   Hex(le64_to_cpu(gpt_h->signature)),
+			   " != 0x",
+			   Hex(GPT_HEADER_SIGNATURE_UBOOT),
+			   "\n");
 		return false;
 	}
 

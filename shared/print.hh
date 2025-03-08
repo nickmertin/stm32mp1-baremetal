@@ -1,7 +1,7 @@
 #pragma once
 
 struct Hex {
-	unsigned x;
+	unsigned long long x;
 };
 
 void printone(const unsigned char *str);

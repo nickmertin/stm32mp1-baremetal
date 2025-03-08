@@ -81,16 +81,13 @@ int stm32mp1_ddr_setup(void)
 
 	/* check memory access for all memory */
 	if (config.info.size != priv->info.size) {
-		pr_err("DDR invalid size : 0x%x, expected 0x%x\n", priv->info.size, config.info.size);
+		pr_err("DDR invalid size : 0x", Hex(priv->info.size), ", expected 0x", Hex(config.info.size), "\n");
 		return -EINVAL;
 	}
 	return 0;
 }
 
-uint32_t stm32mp1_ddr_get_size()
-{
-	return DDR_MEM_SIZE;
-}
+uint32_t stm32mp1_ddr_get_size() { return DDR_MEM_SIZE; }
 
 static void stm32mp1_ddr_get_config(struct stm32mp1_ddr_config *cfg)
 {

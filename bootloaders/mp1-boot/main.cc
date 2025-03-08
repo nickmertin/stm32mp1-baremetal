@@ -9,17 +9,24 @@
 #include "print.hh"
 #include "stm32mp157cxx_ca7.h"
 #include "systeminit.h"
+#include <cstring>
 
+#include "odom_mk_v_conf.hh"
 #include "osd32brk_conf.hh"
 #include "stm32disco_conf.hh"
 
 // Uncomment one of these to select your board:
-namespace Board = OSD32BRK;
+// namespace Board = OSD32BRK;
 // namespace Board = STM32MP1Disco;
+namespace Board = OdomMkV;
+
+char *const LOG_START = reinterpret_cast<char *>(0x2ffe0000u);
 
 void main()
 {
-	Board::OrangeLED led;
+	memset(LOG_START, 0, 2048);
+	Board::RedLED led;
+	led.on();
 
 	auto clockspeed = SystemClocks::init_core_clocks(Board::HSE_Clock_Hz, Board::MPU_MHz);
 	security_init();
@@ -69,7 +76,9 @@ void main()
 	}
 }
 
+// void putchar_s(const char c) { Uart<Board::ConsoleUART>::putchar(c); }
 void putchar_s(const char c)
 {
-	Uart<Board::ConsoleUART>::putchar(c);
+	static char *log_location = LOG_START;
+	*(log_location++) = c;
 }

@@ -32,7 +32,7 @@ struct SystemClocks {
 
 			// Set Bypass Mode = analog oscillator
 			OscEnableDIGBYP::clear();
-			OscEnableHSEBYP::set();
+			OscEnableHSEBYP::clear();
 
 			OscEnableHSEON::set();
 			while (!HSEClockReady::read())

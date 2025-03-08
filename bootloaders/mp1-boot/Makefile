@@ -49,8 +49,6 @@ image: $(BIN)
 load: image
 	@read -p "What is the disk device (Enter for $(SD_DISK_DEV)): " DISK && \
 	DISK=$${DISK:-$(SD_DISK_DEV)} && \
-	echo "Writing to $${DISK}s1 and $${DISK}s2" && \
-	sudo dd if=$(BUILDDIR)/$(BINARYNAME).stm32 of=$${DISK}s1 && \
-	sudo dd if=$(BUILDDIR)/$(BINARYNAME).stm32 of=$${DISK}s2 && \
-	diskutil unmountDisk $${DISK}
-
+	echo "Writing to $${DISK}p1 and $${DISK}p2" && \
+	sudo dd if=$(BUILDDIR)/$(BINARYNAME).stm32 of=$${DISK}p1 && \
+	sudo dd if=$(BUILDDIR)/$(BINARYNAME).stm32 of=$${DISK}p2
