@@ -49,7 +49,6 @@ struct BootSDLoader : BootLoader {
 
 	bool has_error() { return _has_error; }
 
-private:
 	static constexpr uint32_t ssbl_part_num = BootImageDef::SDCardSSBLPartition - 1;
 	static constexpr uint32_t InvalidPartitionNum = 0xFFFFFFFF;
 
@@ -152,7 +151,7 @@ private:
 		hsd.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
 		hsd.Init.BusWide = SDMMC_BUS_WIDE_4B;
 		hsd.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
-		hsd.Init.ClockDiv = 64; // 64MHz/2 / 64 = 500kHz, seems to be the max OSD32-BRK can handle reliably
+		hsd.Init.ClockDiv = 64; // 64MHz/2 / 64 = 500kHz
 
 		// These pins are not board-specific, they are required by BOOTROM
 		// for booting with SDMMC1

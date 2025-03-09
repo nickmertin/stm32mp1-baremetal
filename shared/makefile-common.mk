@@ -15,7 +15,7 @@ ENTRYPOINT 	= 0xC2000040
 OBJECTS   = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(basename $(SOURCES))))
 DEPS   	  = $(addprefix $(OBJDIR)/, $(addsuffix .d, $(basename $(SOURCES))))
 
-MCU ?=  -mcpu=cortex-a7 -march=armv7ve -mfpu=neon-vfpv4 -mlittle-endian -mfloat-abi=hard
+MCU ?=  -mcpu=cortex-a7 -march=armv7ve -mfpu=neon-vfpv4 -mlittle-endian -mfloat-abi=softfp
 
 EXTRA_ARCH_CFLAGS ?= 
 
@@ -113,7 +113,7 @@ $(OBJDIR)/%.o: %.c[cp]* $(OBJDIR)/%.d
 
 $(ELF): $(OBJECTS) $(LINKSCR)
 	$(info Linking...)
-	@$(LD) $(LFLAGS) -o $@ $(OBJECTS) 
+	@$(LD) $(LFLAGS) -o $@ $(OBJECTS) $(LIBS)
 
 $(BIN): $(ELF)
 	$(OBJCPY) -O binary $< $@

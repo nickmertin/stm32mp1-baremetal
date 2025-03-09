@@ -15,12 +15,19 @@
 #include "osd32brk_conf.hh"
 #include "stm32disco_conf.hh"
 
+#include "syscall_api.h"
+
 // Uncomment one of these to select your board:
 // namespace Board = OSD32BRK;
 // namespace Board = STM32MP1Disco;
 namespace Board = OdomMkV;
 
-char *const LOG_START = reinterpret_cast<char *>(0x2ffe0000u);
+char *const LOG_START = reinterpret_cast<char *>(0x2fffc000u);
+char *const LOG_WRAP = reinterpret_cast<char *>(0x30000000u);
+
+extern "C" void run_ssbl(SSBL_Config *config);
+
+static BootSDLoader *my_sd_loader = nullptr;
 
 void main()
 {
@@ -51,19 +58,46 @@ void main()
 	print("Testing RAM.\n");
 	RamTests::run_all(DRAM_MEM_BASE, stm32mp1_ddr_get_size());
 
-	auto boot_method = BootDetect::read_boot_method();
-	print("Booted from ", BootDetect::bootmethod_string(boot_method).data(), "\n");
+	SSBL_Config config = {
+		.enable_sd = false,
+	};
 
-	print("Loading app image...\n");
+	// Find SD Card FAT partition.
+	BootSDLoader sd_loader;
+	my_sd_loader = &sd_loader;
+	gpt_header gpt_hdr;
+	const uint32_t last_block = sd_loader.hsd.SdCard.BlockNbr;
+	const uint32_t gpt_addrs[2] = {1, last_block - 1};
 
-	BootMediaLoader loader{boot_method};
+	constexpr uint32_t InvalidPartitionNum = 0xFFFFFFFF;
+	uint64_t fat_blockaddr = InvalidPartitionNum;
+	for (auto blockaddr : gpt_addrs) {
+		sd_loader.read(gpt_hdr, blockaddr);
+		if (validate_gpt_header(&gpt_hdr, blockaddr, last_block)) {
+			std::array<gpt_entry, 4> ptes;
 
-	bool image_ok = loader.load_image();
+			constexpr uint32_t fat_part_num = 3;
+			uint32_t part_lba = gpt_hdr.partition_entry_lba + (fat_part_num / 4);
+			sd_loader.read(ptes, part_lba);
+			if (validate_partition_entry(ptes[fat_part_num % 4])) {
+				fat_blockaddr = ptes[fat_part_num % 4].starting_lba;
+			}
 
-	if (image_ok) {
-		print("Jumping to app\n");
-		loader.boot_image();
+			if (fat_blockaddr != InvalidPartitionNum) {
+				config.enable_sd = true;
+				config.sd_fatfs_block_address = fat_blockaddr;
+				config.sd_fatfs_block_count = ptes[fat_part_num % 4].ending_lba - fat_blockaddr + 1;
+
+				break;
+			}
+		}
 	}
+
+	if (fat_blockaddr == InvalidPartitionNum) {
+		pr_err("No valid GPT header found\n");
+	}
+
+	run_ssbl(&config);
 
 	// Should not reach here, but in case we do, blink LED rapidly
 	print("FAILED!\n");
@@ -81,4 +115,17 @@ void putchar_s(const char c)
 {
 	static char *log_location = LOG_START;
 	*(log_location++) = c;
+	if (log_location == LOG_WRAP)
+		log_location = LOG_START;
+}
+
+bool syscall_read_sd_card(
+	uint8_t *data, uint32_t block_address, uint32_t block_count, uint32_t timeout, uint32_t *error)
+{
+	uint8_t block[512];
+	for (uint32_t i = 0; i < block_count; i++) {
+		my_sd_loader->read(block, block_address);
+		memcpy(data, block + i * 512, 512);
+	}
+	return true;
 }

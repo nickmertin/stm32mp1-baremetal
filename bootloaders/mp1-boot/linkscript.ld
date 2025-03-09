@@ -2,7 +2,7 @@
    the BootROM data/bss segments. FSBL will be loaded at 0x2FFC2400.
 */
 MEMORY {
-    SYSRAM (rwx)    :   ORIGIN = 0x2FFC2400, LENGTH = (256K - 0x2400)
+    SYSRAM (rwx)    :   ORIGIN = 0x2FFC2400, LENGTH = (256K - 0x2400 - 0x4000)
 }
 
 ENTRY(_Reset);

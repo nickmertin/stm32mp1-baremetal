@@ -26,6 +26,7 @@ SOURCES = startup.s \
 		  norflash/qspi_ll.c \
 		  norflash/qspi_norflash_read.c \
 		  gpt/gpt.cc \
+		  syscall_api.cc \
 
 INCLUDES = -I. \
 		   -I$(EXTLIBDIR)/STM32MP1xx_HAL_Driver/Inc \
@@ -41,6 +42,8 @@ all: image
 include $(SHAREDDIR)/makefile-common.mk
 
 SD_DISK_DEV ?= /dev/disk4
+
+LIBS = -L../../../ssbl/target/armv7a-none-eabi/release -lssbl
 
 image: $(BIN)
 	python3 fsbl_header.py $(BUILDDIR)/$(BINARYNAME).bin $(BUILDDIR)/$(BINARYNAME).stm32
