@@ -15,6 +15,7 @@
 #include "osd32brk_conf.hh"
 #include "stm32disco_conf.hh"
 
+#include "sd_shared.hh"
 #include "syscall_api.h"
 
 // Uncomment one of these to select your board:
@@ -27,11 +28,9 @@ char *const LOG_WRAP = reinterpret_cast<char *>(0x30000000u);
 
 extern "C" void run_ssbl(SSBL_Config *config);
 
-static BootSDLoader *my_sd_loader = nullptr;
-
 void main()
 {
-	memset(LOG_START, 0, 2048);
+	memset(LOG_START, 0, LOG_WRAP - LOG_START);
 	Board::RedLED led;
 	led.on();
 
@@ -117,15 +116,4 @@ void putchar_s(const char c)
 	*(log_location++) = c;
 	if (log_location == LOG_WRAP)
 		log_location = LOG_START;
-}
-
-bool syscall_read_sd_card(
-	uint8_t *data, uint32_t block_address, uint32_t block_count, uint32_t timeout, uint32_t *error)
-{
-	uint8_t block[512];
-	for (uint32_t i = 0; i < block_count; i++) {
-		my_sd_loader->read(block, block_address);
-		memcpy(data, block + i * 512, 512);
-	}
-	return true;
 }

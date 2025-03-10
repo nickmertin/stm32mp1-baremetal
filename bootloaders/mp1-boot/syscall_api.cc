@@ -2,6 +2,7 @@
 #include "delay.h"
 #include "drivers/pinconf.hh"
 #include "print.hh"
+#include "sd_shared.hh"
 #include "stm32mp1xx_hal_sd.h"
 
 void putchar_s(const char c);
@@ -51,13 +52,15 @@ void syscall_putbytes(const uint8_t *bytes, size_t count)
 // 	return true;
 // }
 
-// bool syscall_read_sd_card(
-// 	uint8_t *data, uint32_t block_address, uint32_t block_count, uint32_t timeout, uint32_t *error)
-// {
-// 	auto err = HAL_SD_ReadBlocks(&hsd, data, block_address, block_count, timeout);
-// 	if (err = HAL_OK)
-// 		return true;
-
-// 	*error = hsd.ErrorCode;
-// 	return false;
-// }
+bool syscall_read_sd_card(
+	uint8_t *data, uint32_t block_address, uint32_t block_count, uint32_t timeout, uint32_t *error)
+{
+	struct Block {
+		uint8_t data[512];
+	};
+	for (uint32_t i = 0; i < block_count; i++) {
+		auto block = reinterpret_cast<Block *>(data + i * 512);
+		my_sd_loader->read(*block, block_address);
+	}
+	return true;
+}

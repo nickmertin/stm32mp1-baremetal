@@ -4,8 +4,10 @@
 #include "delay.h"
 #include "drivers/pinconf.hh"
 #include "gpt/gpt.hh"
+#include "print_messages.hh"
 #include "stm32mp1xx_hal_sd.h"
 #include <array>
+#include <cstring>
 
 struct BootSDLoader : BootLoader {
 	BootSDLoader() { reinit(); }
@@ -56,6 +58,11 @@ struct BootSDLoader : BootLoader {
 	uint64_t ssbl_blockaddr = 0;
 	bool _has_error = false;
 
+	static constexpr size_t CACHE_SIZE_EXP = 2;
+	static constexpr size_t CACHE_SIZE = 1 << CACHE_SIZE_EXP;
+	__ALIGNED(4) uint8_t cache[CACHE_SIZE][512];
+	uint32_t cache_state[CACHE_SIZE];
+
 	// Given a gpt_header, find the starting address (LBA) of the SSBL partition
 	// Validate the gpt partition entry, too.
 	uint64_t get_gpt_partition_startaddr(gpt_header &gpt_hdr)
@@ -84,39 +91,28 @@ struct BootSDLoader : BootLoader {
 		constexpr int max_retries = 100;
 
 		hsd.ErrorCode = 0;
-		if constexpr (sizeof data == 512) {
-			// Size matches block size: read directly into data
-			for (int i = 0; i < max_retries; i++) {
-				auto err = HAL_SD_ReadBlocks(&hsd, (uint8_t *)&data, block, numblocks, timeout);
-				if (err == HAL_OK)
-					return;
-				read_error();
-				if (i % 10 == 9)
-					reinit();
-				else
-					udelay(500);
+		if constexpr (sizeof data <= 512) {
+			size_t cache_index = block % CACHE_SIZE;
+			uint8_t *_data = &cache[cache_index][0];
+			uint32_t target_state = (block & ~cache_index) | 1;
+			if (cache_state[cache_index] != target_state) {
+				for (int i = 0; i < max_retries; i++) {
+					auto err = HAL_SD_ReadBlocks(&hsd, _data, block, numblocks, timeout);
+					if (err == HAL_OK) {
+						cache_state[cache_index] = target_state;
+						goto success;
+					}
+					read_error();
+					if (i % 10 == 9)
+						reinit();
+					else
+						udelay(500);
+				}
+				panic("failed to read from SD card");
 			}
-			panic("failed to read from SD card");
-		} else if (sizeof data < 512) {
-			uint8_t _data[512];
-			for (int i = 0; i < max_retries; i++) {
-				auto err = HAL_SD_ReadBlocks(&hsd, _data, block, numblocks, timeout);
-				if (err == HAL_OK)
-					goto success;
-				read_error();
-				if (i % 10 == 9)
-					reinit();
-				else
-					udelay(500);
-			}
-			panic("failed to read from SD card");
 
 		success:
-			auto *dst = (uint8_t *)(&data);
-			auto *src = (uint8_t *)_data;
-			auto sz = sizeof(data);
-			while (sz--)
-				*dst++ = *src++;
+			memcpy((uint8_t *)&data, _data, sizeof(data));
 		} else {
 			static_assert(sizeof data <= 512, "Multiblock reads not yet supported");
 		}

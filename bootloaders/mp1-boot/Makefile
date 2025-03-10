@@ -27,6 +27,7 @@ SOURCES = startup.s \
 		  norflash/qspi_norflash_read.c \
 		  gpt/gpt.cc \
 		  syscall_api.cc \
+		  sd_shared.cc \
 
 INCLUDES = -I. \
 		   -I$(EXTLIBDIR)/STM32MP1xx_HAL_Driver/Inc \
