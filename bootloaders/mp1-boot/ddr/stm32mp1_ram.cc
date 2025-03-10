@@ -11,6 +11,8 @@
 #include "stm32mp1_ddr.h"
 #include "stm32mp1xx.h"
 
+#define abs(x) ((x) < 0 ? -(x) : (x))
+
 static void stm32mp1_ddr_get_config(struct stm32mp1_ddr_config *cfg);
 
 int stm32mp1_ddr_clk_enable(struct ddr_info *priv, u32 mem_speed)
