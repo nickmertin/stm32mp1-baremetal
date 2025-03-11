@@ -96,6 +96,8 @@ void main()
 		pr_err("No valid GPT header found\n");
 	}
 
+	udelay(100000);
+
 	run_ssbl(&config);
 
 	// Should not reach here, but in case we do, blink LED rapidly

@@ -8,10 +8,11 @@ bool test_first_word()
 {
 	volatile uint32_t *addr = reinterpret_cast<uint32_t *>(0xC0000000);
 	*addr = 0x12345678;
-	if (*addr == 0x12345678)
+	auto value = *addr;
+	if (value == 0x12345678)
 		return true;
 
-	panic("RAM Test Fail: test_first_word(): Wrote 0x12345678, read 0x", Hex{*addr});
+	panic("RAM Test Fail: test_first_word(): Wrote 0x12345678, read 0x", Hex{value});
 	return false;
 }
 
