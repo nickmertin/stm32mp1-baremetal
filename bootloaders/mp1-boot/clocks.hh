@@ -3,10 +3,10 @@
 #include <stdint.h>
 
 struct SystemClocks {
-	static unsigned init_core_clocks(uint32_t HSE_Clock = 24000000, uint32_t MPU_MHz = 800)
+	static unsigned init_core_clocks(uint32_t HSE_Clock = 8000000, uint32_t MPU_MHz = 650)
 	{
-		constexpr uint32_t pll1m = 3;
-		const uint32_t pll1n = (MPU_MHz == 650 ? 81U : 100U);
+		constexpr uint32_t pll1m = 2; // PLL1 reference will be 4 MHz
+		const uint32_t pll1n = (MPU_MHz == 650 ? 163U : 200U);
 		constexpr uint32_t pll1p = 1;
 		constexpr uint32_t pll1q = 2;
 		constexpr uint32_t pll1r = 2;
@@ -30,7 +30,6 @@ struct SystemClocks {
 			while (HSEClockReady::read())
 				;
 
-			// Set Bypass Mode = analog oscillator
 			OscEnableDIGBYP::clear();
 			OscEnableHSEBYP::clear();
 

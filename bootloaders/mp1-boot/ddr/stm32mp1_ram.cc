@@ -27,7 +27,7 @@ int stm32mp1_ddr_clk_enable(struct ddr_info *priv, u32 mem_speed)
 	int ret;
 	unsigned int idx;
 
-	constexpr uint32_t hse_clock = 24000000; // TODO: allow for different values
+	constexpr uint32_t hse_clock = 8000000; // TODO: allow for different values
 	const auto pll2n = mdrivlib::RCC_Clocks::PLL2::DIVN::read() + 1;
 	const auto pll2m = mdrivlib::RCC_Clocks::PLL2::DIVM2::read() + 1;
 	const auto pll2r = mdrivlib::RCC_Clocks::PLL2::DIVR::read() + 1;
