@@ -5,19 +5,26 @@
 struct SystemClocks {
 	static unsigned init_core_clocks(uint32_t HSE_Clock = 8000000, uint32_t MPU_MHz = 650)
 	{
-		constexpr uint32_t pll1m = 2; // PLL1 reference will be 4 MHz
-		const uint32_t pll1n = (MPU_MHz == 650 ? 163U : 200U);
-		constexpr uint32_t pll1p = 1;
+		constexpr uint32_t pll1m = 1;						   // PLL1 reference will be 8 MHz
+		const uint32_t pll1n = (MPU_MHz == 650 ? 163U : 200U); // PLL1 VCO will be 2 * core frequency
+		constexpr uint32_t pll1p = 2;						   // PLL1_P -> MPU
 		constexpr uint32_t pll1q = 2;
 		constexpr uint32_t pll1r = 2;
 		constexpr uint32_t pll1frac = 0;
 
-		constexpr uint32_t pll2m = 3;
-		constexpr uint32_t pll2n = 66;
-		constexpr uint32_t pll2p = 2;
+		constexpr uint32_t pll2m = 1;	// PLL2 reference will be 8 MHz
+		constexpr uint32_t pll2n = 133; // PLL2 VCO will be 1064 MHz
+		constexpr uint32_t pll2p = 4;	// PLL2_P -> AXI @ 266 MHz
 		constexpr uint32_t pll2q = 1;
-		constexpr uint32_t pll2r = 1;
-		constexpr uint32_t pll2frac = 5120;
+		constexpr uint32_t pll2r = 2; // PLL2_R -> DDR @ 532 MHz
+		constexpr uint32_t pll2frac = 0;
+
+		// TODO: maybe this should be configured by the MCU?
+		// constexpr uint32_t pll3m = 2;	// PLL3 reference will be 4 MHz
+		// constexpr uint32_t pll3n = 200; // PLL3 VCO will be 800 MHz
+		// constexpr uint32_t pll3p = 4;	// PLL3_P -> MCU @ 200 MHz
+		// constexpr uint32_t pll3q = 8;	// PLL3_Q -> ADCSRC, I2C46SRC, LPTIM1SRC @ 100 MHz
+		// constexpr uint32_t pll3r = 3;	// PLL3_R -> QSPISRC @ 200 MHz
 
 		using namespace mdrivlib;
 		using namespace mdrivlib::RCC_Clocks;
@@ -64,8 +71,6 @@ struct SystemClocks {
 			while (!PLL1::Ready::read())
 				;
 			PLL1::DIVPEnable::set();
-			PLL1::DIVQEnable::set();
-			PLL1::DIVREnable::set();
 		}
 
 		// PLL2
@@ -92,7 +97,6 @@ struct SystemClocks {
 			while (!PLL2::Ready::read())
 				;
 			PLL2::DIVPEnable::set();
-			PLL2::DIVQEnable::set();
 			PLL2::DIVREnable::set();
 		}
 
