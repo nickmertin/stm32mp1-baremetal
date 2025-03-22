@@ -41,6 +41,8 @@ void main()
 	print("\n\nMP1-Boot\n\n");
 	print("MPU clock: ", clockspeed, " Hz\n");
 
+	QSPI_init();
+
 	if constexpr (Board::PMIC::HasSTPMIC) {
 		STPMIC1 pmic{Board::PMIC::I2C_config};
 
