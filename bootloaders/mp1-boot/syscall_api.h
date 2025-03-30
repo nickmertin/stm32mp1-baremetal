@@ -7,12 +7,6 @@
 extern "C" {
 #endif
 
-struct SSBL_Config {
-	bool enable_sd;
-	uint32_t sd_fatfs_block_address;
-	uint32_t sd_fatfs_block_count;
-};
-
 void syscall_putbytes(const uint8_t *bytes, size_t count);
 bool syscall_init_sd_card(uint32_t *error);
 bool syscall_read_sd_card(

@@ -1,24 +1,36 @@
 #include "print_messages.hh"
 #include <cstdint>
+#include <cstdlib>
 
 namespace RamTests
 {
 
-bool test_first_word()
+bool test_all_words()
 {
-	volatile uint32_t *addr = reinterpret_cast<uint32_t *>(0xC0000000);
-	*addr = 0x12345678;
-	auto value = *addr;
-	if (value == 0x12345678)
-		return true;
+	constexpr uint32_t value = 0x12345678;
+	volatile uint32_t *addr = (uint32_t *)0xC0000000;
 
-	panic("RAM Test Fail: test_first_word(): Wrote 0x12345678, read 0x", Hex{value});
-	return false;
+	for (size_t i = 0; i < 32 * 1024; i++) {
+		addr[i] = value;
+	}
+
+	for (size_t i = 0; i < 32 * 1024; i++) {
+		auto read_value = addr[i];
+		if (read_value != value) {
+			panic("RAM Test Fail: test_all_words() at 0x",
+				  Hex{(uint32_t)&addr[i]},
+				  ": Wrote 0x12345678, read 0x",
+				  Hex{read_value});
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool run_all(uint32_t ram_start, uint32_t ram_size)
 {
-	bool ok = test_first_word();
+	bool ok = test_all_words();
 
 	return ok;
 }

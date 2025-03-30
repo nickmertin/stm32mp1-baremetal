@@ -26,7 +26,7 @@ namespace Board = OdomMkV;
 char *const LOG_START = reinterpret_cast<char *>(0x2fffc000u);
 char *const LOG_WRAP = reinterpret_cast<char *>(0x30000000u);
 
-extern "C" void run_ssbl(SSBL_Config *config);
+extern "C" void run_ssbl();
 
 void main()
 {
@@ -59,48 +59,21 @@ void main()
 	print("Testing RAM.\n");
 	RamTests::run_all(DRAM_MEM_BASE, stm32mp1_ddr_get_size());
 
-	SSBL_Config config = {
-		.enable_sd = false,
-	};
+	// These pins are not board-specific, they are required by BOOTROM
+	// for booting with SDMMC1
+	// D1 - D3 are not used by BOOTROM, so need to be init by FSBL
+	PinConf{GPIO::C, PinNum::_9, PinAF::AF_12}.init(PinMode::Alt);
+	PinConf{GPIO::C, PinNum::_10, PinAF::AF_12}.init(PinMode::Alt);
+	PinConf{GPIO::C, PinNum::_11, PinAF::AF_12}.init(PinMode::Alt);
 
-	// Find SD Card FAT partition.
-	BootSDLoader sd_loader;
-	my_sd_loader = &sd_loader;
-	gpt_header gpt_hdr;
-	const uint32_t last_block = sd_loader.hsd.SdCard.BlockNbr;
-	const uint32_t gpt_addrs[2] = {1, last_block - 1};
-
-	constexpr uint32_t InvalidPartitionNum = 0xFFFFFFFF;
-	uint64_t fat_blockaddr = InvalidPartitionNum;
-	for (auto blockaddr : gpt_addrs) {
-		sd_loader.read(gpt_hdr, blockaddr);
-		if (validate_gpt_header(&gpt_hdr, blockaddr, last_block)) {
-			std::array<gpt_entry, 4> ptes;
-
-			constexpr uint32_t fat_part_num = 3;
-			uint32_t part_lba = gpt_hdr.partition_entry_lba + (fat_part_num / 4);
-			sd_loader.read(ptes, part_lba);
-			if (validate_partition_entry(ptes[fat_part_num % 4])) {
-				fat_blockaddr = ptes[fat_part_num % 4].starting_lba;
-			}
-
-			if (fat_blockaddr != InvalidPartitionNum) {
-				config.enable_sd = true;
-				config.sd_fatfs_block_address = fat_blockaddr;
-				config.sd_fatfs_block_count = ptes[fat_part_num % 4].ending_lba - fat_blockaddr + 1;
-
-				break;
-			}
-		}
-	}
-
-	if (fat_blockaddr == InvalidPartitionNum) {
-		pr_err("No valid GPT header found\n");
-	}
+	// D0, CK, CMD are used by BOOTROM and should already be init. We re-init them just in case...
+	PinConf{GPIO::C, PinNum::_8, PinAF::AF_12}.init(PinMode::Alt);
+	PinConf{GPIO::C, PinNum::_12, PinAF::AF_12}.init(PinMode::Alt);
+	PinConf{GPIO::D, PinNum::_2, PinAF::AF_12}.init(PinMode::Alt);
 
 	udelay(100000);
 
-	run_ssbl(&config);
+	run_ssbl();
 
 	// Should not reach here, but in case we do, blink LED rapidly
 	print("FAILED!\n");
@@ -120,4 +93,10 @@ void putchar_s(const char c)
 	*(log_location++) = c;
 	if (log_location == LOG_WRAP)
 		log_location = LOG_START;
+}
+
+extern "C" void abort()
+{
+	while (1)
+		;
 }

@@ -6,9 +6,11 @@ MEMORY {
 }
 
 ENTRY(_Reset);
+PROVIDE(__exidx_start = 0);
+PROVIDE(__exidx_end = 0);
 
 __STACK_START = ORIGIN(SYSRAM) + LENGTH(SYSRAM);
-__HEAP_SIZE = 0x0;
+__HEAP_SIZE = 16K;
 
 SECTIONS {
     /* 0x100 bytes at the start reserved for header */
