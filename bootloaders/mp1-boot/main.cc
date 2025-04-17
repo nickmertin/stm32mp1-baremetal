@@ -27,15 +27,20 @@ char *const LOG_START = reinterpret_cast<char *>(0x2fffc000u);
 char *const LOG_WRAP = reinterpret_cast<char *>(0x30000000u);
 
 extern "C" void run_ssbl();
+Board::BlueLED led;
 
 void main()
 {
 	memset(LOG_START, 0, LOG_WRAP - LOG_START);
-	Board::RedLED led;
-	led.on();
+
+	// Enable debugging
+	RCC->MP_APB5ENSETR = RCC_MP_APB5ENSETR_BSECEN;
+	BSEC->BSEC_DENABLE = 0x47F;
 
 	auto clockspeed = SystemClocks::init_core_clocks(Board::HSE_Clock_Hz, Board::MPU_MHz);
 	security_init();
+
+	led.on();
 
 	Uart<Board::ConsoleUART> console(Board::UartRX, Board::UartTX, 115200);
 	print("\n\nMP1-Boot\n\n");
@@ -71,7 +76,7 @@ void main()
 	PinConf{GPIO::C, PinNum::_12, PinAF::AF_12}.init(PinMode::Alt);
 	PinConf{GPIO::D, PinNum::_2, PinAF::AF_12}.init(PinMode::Alt);
 
-	udelay(100000);
+	// udelay(100000);
 
 	run_ssbl();
 
@@ -97,6 +102,9 @@ void putchar_s(const char c)
 
 extern "C" void abort()
 {
+	led.off();
+	Board::RedLED red_led;
+	red_led.on();
 	while (1)
 		;
 }

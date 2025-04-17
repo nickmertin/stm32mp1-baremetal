@@ -29,14 +29,15 @@ static inline void pr_err(Types... args)
 		print(args...);
 }
 
+extern "C" void abort();
+
 template<typename... Types>
 static inline void panic(Types... args)
 {
 	if constexpr (PrintErrorMessages)
 		print(args...);
 
-	while (1)
-		;
+	abort();
 	// TODO: Reboot?
 	// NVIC_SystemReset();
 }
