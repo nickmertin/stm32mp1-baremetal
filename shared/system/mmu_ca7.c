@@ -30,19 +30,10 @@
 #include "stm32mp157cxx_ca7.h"
 
 // Todo: use values from the linker script, don't redefine here
-#define __ROM_BASE 0xC2000000
-#define __ROM_SIZE 0x00100000 /* 1M */
+#define __RAM_BASE 0xC0000000
+#define __RAM_SIZE 0x0FF00000
 
-#define __RAM_BASE 0xC0200000
-#define __RAM_SIZE (__ROM_BASE - __RAM_BASE)
-
-#define __RAM2_BASE 0xC2100000
-#define __RAM2_SIZE (0xD0000000 - __RAM2_BASE)
-
-#define __HEAP_BASE 0xD0000000
-#define __HEAP_SIZE 0x10000000
-
-#define __TTB_BASE 0xC0100000
+#define __TTB_BASE 0xCFF00000
 
 #define A7_SYSRAM_BASE 0x2FFC0000
 #define A7_SYSRAM_SIZE 0x00040000			  /* 256kB */
@@ -106,16 +97,8 @@ void MMU_CreateTranslationTable(void)
 	// individual translation table walks"
 	// So we use 1MB sections a lot here.
 
-	// Note from DG:
-	// ROM should be Sect_Normal_Cod (RO), but that seems to interfere with SWD/JTAG debugger loading an elf file
-	// Setting it to Normal works better. This shouldn't matter when U-boot loads the firmware.
-	// Todo: Investigate why this is!
-	MMU_TTSection(TTB_BASE, __ROM_BASE, __ROM_SIZE / 0x100000, Sect_Normal);
-
 	// RAM is RW, cacheable
-	MMU_TTSection(TTB_BASE, __RAM_BASE, __RAM_SIZE / 0x100000, Sect_Normal_RW);
-	MMU_TTSection(TTB_BASE, __RAM2_BASE, __RAM2_SIZE / 0x100000, Sect_Normal_RW);
-	MMU_TTSection(TTB_BASE, __HEAP_BASE, __HEAP_SIZE / 0x100000, Sect_Normal_RW);
+	MMU_TTSection(TTB_BASE, __RAM_BASE, __RAM_SIZE / 0x100000, Sect_Normal_Cod);
 
 	// SRAM1-4, used by Cortex-M4 MCU for code execution and stack
 	// It's actually is only 384kB, but we can set the whole 1MB section

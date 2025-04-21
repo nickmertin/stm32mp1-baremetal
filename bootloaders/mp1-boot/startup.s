@@ -26,11 +26,8 @@ Reset_Handler:
 	cpsid   if 										// Mask Interrupts
 
 	mrc     p15, 0, r0, c1, c0, 0					// Read System Control register (SCTLR)
-	bic     r0, r0, #(0x1 << 12) 					// Clear I bit 12 to disable I Cache
-	bic     r0, r0, #(0x1 <<  2) 					// Clear C bit  2 to disable D Cache
-	bic     r0, r0, #0x1 							// Clear M bit  0 to disable MMU
-	bic     r0, r0, #(0x1 << 11) 					// Clear Z bit 11 to disable branch prediction
-	bic     r0, r0, #(0x1 << 13) 					// Clear V bit 13 to disable High Vector Table Base Address
+    bic     r0, r0, #0b11100000000000
+    bic     r0, r0, #0b00000000000101
 	mcr     p15, 0, r0, c1, c0, 0 					// Write System Control register (SCTLR)
 	isb
 													// Configure ACTLR
@@ -130,6 +127,7 @@ PAbt_Handler:
 	b .
 
 DAbt_Handler:
+    mcr     p15, 0, r0, c5, c0, 0   // Read DFSR into r0.
 	b .
 
 IRQ_Handler:
@@ -138,3 +136,32 @@ IRQ_Handler:
 FIQ_Handler:
 	b .
 
+.global syscall_start_program
+syscall_start_program:
+    push    {r0}
+
+    // Initialize translation table.
+    bl MMU_CreateTranslationTable
+
+    // System control changes.
+    mrc     p15, 0, r0, c1, c0, 0       // Read SCTLR into r0.
+    orr     r0, r0, #0b1100000000000    // Set bits to enable instruction cache and branch prediction.
+    orr     r0, r0, #0b0000000000001    // Set bits to enable memory management unit.
+    mcr     p15, 0, r0, c1, c0, 0       // Write SCTLR from r0.
+
+    // // SIMD and floating-point.
+    // mov     r0, 0x00F00000              // Prepare CPACR value in r0 to enable advanced SIMD and floating-point functionality.
+    // mcr     p15, 0, r0, c1, c0, 2       // Write CPACR from r0.
+
+    // ; mov     sp, 0x30000000              // Set the stack pointer to the top of SYSRAM.
+
+    // Enable IRQs.
+    bl      IRQ_Initialize
+
+
+    // Start program.
+    pop     {r0}
+    mcr     p15, 0, r0, c12, c0, 0      // Set VBAR to the program entry point.
+    isb                                 // Instruction synchronization barrier.
+    mov     lr, 0xffffffff              // Clear out the link register to ensure it is an error to "return" to the bootloader.
+    bx      r0                          // Jump to the program entry point.

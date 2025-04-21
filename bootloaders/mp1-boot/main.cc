@@ -15,7 +15,6 @@
 #include "osd32brk_conf.hh"
 #include "stm32disco_conf.hh"
 
-#include "sd_shared.hh"
 #include "syscall_api.h"
 
 // Uncomment one of these to select your board:
@@ -42,11 +41,8 @@ void main()
 
 	led.on();
 
-	Uart<Board::ConsoleUART> console(Board::UartRX, Board::UartTX, 115200);
 	print("\n\nMP1-Boot\n\n");
 	print("MPU clock: ", clockspeed, " Hz\n");
-
-	QSPI_init();
 
 	if constexpr (Board::PMIC::HasSTPMIC) {
 		STPMIC1 pmic{Board::PMIC::I2C_config};

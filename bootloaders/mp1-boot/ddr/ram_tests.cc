@@ -1,6 +1,5 @@
 #include "print_messages.hh"
 #include <cstdint>
-#include <cstdlib>
 
 namespace RamTests
 {
@@ -10,11 +9,11 @@ bool test_all_words()
 	constexpr uint32_t value = 0x12345678;
 	volatile uint32_t *addr = (uint32_t *)0xC0000000;
 
-	for (size_t i = 0; i < 32 * 1024; i++) {
+	for (uint32_t i = 0; i < 32 * 1024; i++) {
 		addr[i] = value;
 	}
 
-	for (size_t i = 0; i < 32 * 1024; i++) {
+	for (uint32_t i = 0; i < 32 * 1024; i++) {
 		auto read_value = addr[i];
 		if (read_value != value) {
 			panic("RAM Test Fail: test_all_words() at 0x",

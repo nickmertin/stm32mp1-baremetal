@@ -9,6 +9,8 @@ SHAREDDIR = ../../shared
 SOURCES = startup.s \
 		  main.cc \
 		  systeminit.c \
+		  $(SHAREDDIR)/system/irq_init.c \
+		  $(SHAREDDIR)/system/mmu_ca7.c \
 		  $(SHAREDDIR)/system/syscalls.c \
 		  $(SHAREDDIR)/system/libc_stub.c \
 		  $(SHAREDDIR)/system/libcpp_stub.cc \
@@ -27,7 +29,6 @@ SOURCES = startup.s \
 		  norflash/qspi_norflash_read.c \
 		  gpt/gpt.cc \
 		  syscall_api.cc \
-		  sd_shared.cc \
 
 INCLUDES = -I. \
 		   -I$(EXTLIBDIR)/STM32MP1xx_HAL_Driver/Inc \
